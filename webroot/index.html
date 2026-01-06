@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📜 Certificate Manager</h1>
+            <p class="subtitle">Manage custom CA certificates in system trust store</p>
+        </header>
+
+        <section class="upload-section">
+            <h2>📤 Upload Certificate</h2>
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept=".pem,.crt,.cer" multiple style="display: none;">
+                <div class="upload-prompt">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p>Click to select certificate files</p>
+                    <p class="file-hint">Supports .pem, .crt, .cer formats</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="certificates-section">
+            <h2>📋 Installed Certificates</h2>
+            <div class="certificate-list" id="certificateList">
+                <p class="empty-message">No certificates installed yet</p>
+            </div>
+        </section>
+
+        <section class="actions-section">
+            <button class="btn btn-primary" id="applyBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Apply Changes (Requires Reboot)
+            </button>
+            <button class="btn btn-secondary" id="refreshBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <polyline points="1 20 1 14 7 14"></polyline>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                </svg>
+                Refresh List
+            </button>
+        </section>
+
+        <section class="info-section">
+            <div class="info-box">
+                <h3>ℹ️ Information</h3>
+                <ul>
+                    <li>Upload custom CA certificates in PEM format</li>
+                    <li>Certificates will be installed to system trust store</li>
+                    <li>Changes take effect after device reboot</li>
+                    <li>Compatible with Android 5.0+ (including Android 14+)</li>
+                    <li>Original ProxyPin certificate is preserved by default</li>
+                </ul>
+            </div>
+        </section>
+
+        <footer>
+            <p>Certificate Manager v2.0 - Extended Module</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
