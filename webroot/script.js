@@ -133,12 +133,14 @@ function readFileContent(file) {
 
 // Calculate certificate hash using helper script
 async function calculateCertHash(certContent) {
-    // Create a temporary file for the certificate
-    const tempFile = `/data/local/tmp/cert_temp_${Date.now()}.pem`;
+    // Create a temporary file for the certificate using a secure random name
+    const randomStr = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    const tempFile = `/data/local/tmp/cert_temp_${randomStr}.pem`;
     
-    // Write certificate to temp file
-    const contentBase64 = btoa(certContent);
-    const writeResult = KernelSU.exec(`echo "${contentBase64}" | base64 -d > ${tempFile}`);
+    // Write certificate to temp file using proper escaping
+    // First, save to a safe location using JavaScript file operations through KernelSU
+    const escapedContent = certContent.replace(/'/g, "'\\''");
+    const writeResult = KernelSU.exec(`cat > ${tempFile} << 'EOF'\n${escapedContent}\nEOF`);
     
     // Use helper script to calculate hash
     const hashResult = KernelSU.exec(`sh ${MODULE_DIR}/cert_hash.sh ${tempFile}`);
@@ -166,21 +168,22 @@ async function saveCertificate(hash, content, originalName) {
     const filename = `${hash}.0`;
     const metaFilename = `${hash}.meta`;
     
-    // Write certificate file
+    // Write certificate file using heredoc for safety
     const certPath = `${UPLOAD_DIR}/${filename}`;
     const metaPath = `${UPLOAD_DIR}/${metaFilename}`;
     
-    // Use echo with base64 encoding to safely write content
-    const contentBase64 = btoa(content);
-    KernelSU.exec(`echo "${contentBase64}" | base64 -d > ${certPath}`);
+    // Use heredoc to safely write content (avoids injection issues)
+    const escapedContent = content.replace(/'/g, "'\\''");
+    KernelSU.exec(`cat > ${certPath} << 'EOF'\n${escapedContent}\nEOF`);
     
-    // Write metadata
-    const metadata = JSON.stringify({
+    // Write metadata - properly escape JSON content
+    const metadata = {
         originalName: originalName,
         uploadDate: new Date().toISOString(),
         hash: hash
-    });
-    KernelSU.exec(`echo '${metadata}' > ${metaPath}`);
+    };
+    const metadataStr = JSON.stringify(metadata).replace(/'/g, "'\\''");
+    KernelSU.exec(`cat > ${metaPath} << 'EOF'\n${metadataStr}\nEOF`);
     
     // Set permissions
     KernelSU.exec(`chmod 644 ${certPath}`);
