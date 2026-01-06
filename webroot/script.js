@@ -169,8 +169,8 @@ async function calculateCertHash(certContent) {
 // Save certificate using KernelSU
 async function saveCertificate(hash, content, originalName) {
     // Create directories if they don't exist
-    KernelSU.exec(`mkdir -p ${UPLOAD_DIR}`);
-    KernelSU.exec(`mkdir -p ${CERT_DIR}`);
+    KernelSU.exec(`mkdir -p '${UPLOAD_DIR}'`);
+    KernelSU.exec(`mkdir -p '${CERT_DIR}'`);
     
     // Save with metadata
     const filename = `${hash}.0`;
@@ -182,7 +182,7 @@ async function saveCertificate(hash, content, originalName) {
     
     // Use heredoc to safely write content (avoids injection issues)
     const escapedContent = content.replace(/'/g, "'\\''");
-    KernelSU.exec(`cat > ${certPath} << 'EOF'\n${escapedContent}\nEOF`);
+    KernelSU.exec(`cat > '${certPath}' << 'EOF'\n${escapedContent}\nEOF`);
     
     // Write metadata - properly escape JSON content
     const metadata = {
@@ -191,10 +191,10 @@ async function saveCertificate(hash, content, originalName) {
         hash: hash
     };
     const metadataStr = JSON.stringify(metadata).replace(/'/g, "'\\''");
-    KernelSU.exec(`cat > ${metaPath} << 'EOF'\n${metadataStr}\nEOF`);
+    KernelSU.exec(`cat > '${metaPath}' << 'EOF'\n${metadataStr}\nEOF`);
     
     // Set permissions
-    KernelSU.exec(`chmod 644 ${certPath}`);
+    KernelSU.exec(`chmod 644 '${certPath}'`);
 }
 
 // Load certificates from the module
@@ -202,8 +202,8 @@ function loadCertificates() {
     const listContainer = document.getElementById('certificateList');
     
     // Get list of certificates
-    const result = KernelSU.exec(`ls -1 ${CERT_DIR}/*.0 2>/dev/null || true`);
-    const uploadResult = KernelSU.exec(`ls -1 ${UPLOAD_DIR}/*.0 2>/dev/null || true`);
+    const result = KernelSU.exec(`ls -1 '${CERT_DIR}'/*.0 2>/dev/null || true`);
+    const uploadResult = KernelSU.exec(`ls -1 '${UPLOAD_DIR}'/*.0 2>/dev/null || true`);
     
     let certificates = [];
     
@@ -233,7 +233,7 @@ function loadCertificates() {
             const alreadyInstalled = certificates.some(c => c.hash === hash);
             if (!alreadyInstalled) {
                 // Try to get metadata
-                const metaResult = KernelSU.exec(`cat ${UPLOAD_DIR}/${hash}.meta 2>/dev/null || true`);
+                const metaResult = KernelSU.exec(`cat '${UPLOAD_DIR}/${hash}.meta' 2>/dev/null || true`);
                 let originalName = filename;
                 
                 if (metaResult.stdout) {
@@ -317,11 +317,11 @@ function deleteCertificate(cert) {
     }
     
     // Delete from uploads directory
-    KernelSU.exec(`rm -f ${UPLOAD_DIR}/${cert.filename}`);
-    KernelSU.exec(`rm -f ${UPLOAD_DIR}/${cert.hash}.meta`);
+    KernelSU.exec(`rm -f '${UPLOAD_DIR}/${cert.filename}'`);
+    KernelSU.exec(`rm -f '${UPLOAD_DIR}/${cert.hash}.meta'`);
     
     // Delete from cert directory if it exists there
-    KernelSU.exec(`rm -f ${CERT_DIR}/${cert.filename}`);
+    KernelSU.exec(`rm -f '${CERT_DIR}/${cert.filename}'`);
     
     showToast('Certificate deleted. Apply changes and reboot to take effect.', 'success');
     loadCertificates();
@@ -336,14 +336,21 @@ function applyChanges() {
     showToast('Applying changes...', 'info');
     
     // Ensure cert directory exists
-    KernelSU.exec(`mkdir -p ${CERT_DIR}`);
+    KernelSU.exec(`mkdir -p '${CERT_DIR}'`);
     
-    // Copy all uploaded certificates to the cert directory
-    const result = KernelSU.exec(`cp -f ${UPLOAD_DIR}/*.0 ${CERT_DIR}/ 2>/dev/null || true`);
+    // Check if there are certificates to copy
+    const checkResult = KernelSU.exec(`ls -1 '${UPLOAD_DIR}'/*.0 2>/dev/null | wc -l`);
+    const certCount = parseInt(checkResult.stdout || '0');
     
-    // Set proper permissions
-    KernelSU.exec(`chmod -R 644 ${CERT_DIR}/*.0`);
-    KernelSU.exec(`chown -R 0:0 ${CERT_DIR}`);
+    if (certCount > 0) {
+        // Copy all uploaded certificates to the cert directory
+        KernelSU.exec(`cp -f '${UPLOAD_DIR}'/*.0 '${CERT_DIR}'/ 2>/dev/null || true`);
+        
+        // Set proper permissions
+        KernelSU.exec(`chmod -R 644 '${CERT_DIR}'/*.0 2>/dev/null || true`);
+    }
+    
+    KernelSU.exec(`chown -R 0:0 '${CERT_DIR}'`);
     
     setTimeout(() => {
         applyBtn.classList.remove('loading');
