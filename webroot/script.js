@@ -98,8 +98,9 @@ async function handleFileUpload(files) {
         try {
             const content = await readFileContent(file);
             
-            // Validate certificate format
-            if (!content.includes('BEGIN CERTIFICATE')) {
+            // Validate certificate format - check for both BEGIN and END markers
+            if (!content.includes('-----BEGIN CERTIFICATE-----') || 
+                !content.includes('-----END CERTIFICATE-----')) {
                 showToast(`Invalid certificate format: ${file.name}`, 'error');
                 continue;
             }
@@ -134,19 +135,26 @@ function readFileContent(file) {
 // Calculate certificate hash using helper script
 async function calculateCertHash(certContent) {
     // Create a temporary file for the certificate using a secure random name
-    const randomStr = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    // Use crypto API if available, otherwise fallback to Math.random
+    let randomStr;
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+        const array = new Uint32Array(2);
+        crypto.getRandomValues(array);
+        randomStr = Array.from(array, dec => dec.toString(36)).join('');
+    } else {
+        randomStr = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
+    }
     const tempFile = `/data/local/tmp/cert_temp_${randomStr}.pem`;
     
     // Write certificate to temp file using proper escaping
-    // First, save to a safe location using JavaScript file operations through KernelSU
     const escapedContent = certContent.replace(/'/g, "'\\''");
-    const writeResult = KernelSU.exec(`cat > ${tempFile} << 'EOF'\n${escapedContent}\nEOF`);
+    const writeResult = KernelSU.exec(`cat > '${tempFile}' << 'EOF'\n${escapedContent}\nEOF`);
     
-    // Use helper script to calculate hash
-    const hashResult = KernelSU.exec(`sh ${MODULE_DIR}/cert_hash.sh ${tempFile}`);
+    // Use helper script to calculate hash with properly quoted path
+    const hashResult = KernelSU.exec(`sh '${MODULE_DIR}/cert_hash.sh' '${tempFile}'`);
     
     // Clean up temp file
-    KernelSU.exec(`rm -f ${tempFile}`);
+    KernelSU.exec(`rm -f '${tempFile}'`);
     
     if (hashResult.errno === 0 && hashResult.stdout) {
         return hashResult.stdout.trim();

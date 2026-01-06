@@ -25,7 +25,13 @@ if command -v openssl >/dev/null 2>&1; then
     fi
 fi
 
-# If openssl is not available or failed, generate a pseudo-hash
-# based on certificate content
-PSEUDO_HASH=$(cat "$CERT_FILE" | grep -v "BEGIN\|END" | head -5 | md5sum | cut -c1-8)
-echo "$PSEUDO_HASH"
+# If openssl is not available or failed, generate a pseudo-hash using SHA-256
+# This is more secure than MD5 for fallback purposes
+if command -v sha256sum >/dev/null 2>&1; then
+    PSEUDO_HASH=$(cat "$CERT_FILE" | grep -v "BEGIN\|END" | head -5 | sha256sum | cut -c1-8)
+    echo "$PSEUDO_HASH"
+else
+    # Last resort: use a timestamp-based hash
+    PSEUDO_HASH=$(date +%s | sha1sum 2>/dev/null | cut -c1-8 || echo "$(date +%s)")
+    echo "$PSEUDO_HASH"
+fi

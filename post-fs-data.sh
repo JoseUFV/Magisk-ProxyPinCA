@@ -52,9 +52,13 @@ if [ -d /apex/com.android.conscrypt/cacerts ]; then
     # Copy system certificates to temporary directory
     cp -f /apex/com.android.conscrypt/cacerts/* "$TEMP_DIR"
     
-    # Copy all custom certificates from module
+    # Copy all custom certificates from module if they exist
     echo "[$(date +%F) $(date +%T)] - Copying custom certificates..."
-    cp -f ${MODDIR}/system/etc/security/cacerts/*.0 "$TEMP_DIR/" 2>/dev/null || true
+    if ls ${MODDIR}/system/etc/security/cacerts/*.0 >/dev/null 2>&1; then
+        cp -f ${MODDIR}/system/etc/security/cacerts/*.0 "$TEMP_DIR/" 2>/dev/null || true
+    else
+        echo "[$(date +%F) $(date +%T)] - No custom certificates found to copy."
+    fi
 
     chown -R 0:0 "$TEMP_DIR"
     set_context /apex/com.android.conscrypt/cacerts "$TEMP_DIR"
